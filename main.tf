@@ -55,6 +55,6 @@ module "logging" {
   # Add other required variables for the Logging module here
 }
 
-# Note: Dependencies between modules are implicitly handled by Terraform
-# based on the references (e.g., module.vpc.vpc_id).
-# Explicit depends_on is usually not needed unless there are non-obvious dependencies.
+# Note: Dependencies between modules are implicitly handled by Terraform based on the 
+# references between module inputs and outputs (e.g., module.eks depends on module.vpc 
+# because it uses module.vpc.vpc_id). Explicit 'depends_on' is generally not required.

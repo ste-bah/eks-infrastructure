@@ -138,6 +138,10 @@ resource "aws_eks_node_group" "worker" {
     # Add other relevant tags
   })
 
+  lifecycle {
+    create_before_destroy = true
+  }
+
   depends_on = [aws_eks_cluster.main]
 }
 
@@ -185,6 +189,10 @@ resource "aws_eks_node_group" "ingress" {
     "k8s.io/cluster-autoscaler/enabled" = "true"
   })
 
+  lifecycle {
+    create_before_destroy = true
+  }
+
   depends_on = [aws_eks_cluster.main]
 }
 
@@ -231,6 +239,10 @@ resource "aws_eks_node_group" "infra" {
     "eks:nodegroup-name"                = local.infra_ng_config.name
     "k8s.io/cluster-autoscaler/enabled" = "true"
   })
+
+  lifecycle {
+    create_before_destroy = true
+  }
 
   depends_on = [aws_eks_cluster.main]
 }
