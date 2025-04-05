@@ -9,16 +9,28 @@ locals {
   })
 
   # Merge provided node group configs with defaults
-  worker_ng_config = merge({
-    name          = "worker-nodes"
+  blue_ng_config = merge({
+    name          = "blue-nodes"
     instance_type = var.node_instance_type # Default to global var if not set in object
     desired_size  = var.node_count         # Default to global var if not set in object
     min_size      = 1
     max_size      = max(2, var.node_count + 1) # Simple default max
     disk_size     = var.node_disk_size       # Default to global var if not set in object
-    labels        = {}
+    labels        = { "color" = "blue" }     # Default blue label
     taints        = []
-    }, var.worker_node_group_config # Provided config overrides defaults
+    }, var.blue_node_group_config # Provided config overrides defaults
+  )
+
+  green_ng_config = merge({
+    name          = "green-nodes"
+    instance_type = var.node_instance_type # Default to global var if not set in object
+    desired_size  = var.node_count         # Default to global var if not set in object
+    min_size      = 1
+    max_size      = max(2, var.node_count + 1) # Simple default max
+    disk_size     = var.node_disk_size       # Default to global var if not set in object
+    labels        = { "color" = "green" }    # Default green label
+    taints        = []
+    }, var.green_node_group_config # Provided config overrides defaults
   )
 
   ingress_ng_config = merge({
@@ -92,36 +104,35 @@ resource "aws_iam_openid_connect_provider" "oidc_provider" {
   })
 }
 
-
 # --- EKS Node Groups ---
 
-# Worker Node Group (Default/General Purpose)
-resource "aws_eks_node_group" "worker" {
+# Blue Node Group
+resource "aws_eks_node_group" "blue" {
   cluster_name    = aws_eks_cluster.main.name
-  node_group_name = local.worker_ng_config.name
+  node_group_name = local.blue_ng_config.name
   node_role_arn   = var.node_role_arn
   subnet_ids      = var.private_subnet_ids
 
   ami_type       = "BOTTLEROCKET_x86_64" # As per plan
   capacity_type  = "ON_DEMAND"           # Or SPOT
-  disk_size      = local.worker_ng_config.disk_size
-  instance_types = [local.worker_ng_config.instance_type]
+  disk_size      = local.blue_ng_config.disk_size
+  instance_types = [local.blue_ng_config.instance_type]
   release_version = null # Let EKS manage the Bottlerocket version based on K8s version
 
   scaling_config {
-    desired_size = local.worker_ng_config.desired_size
-    min_size     = local.worker_ng_config.min_size
-    max_size     = local.worker_ng_config.max_size
+    desired_size = local.blue_ng_config.desired_size
+    min_size     = local.blue_ng_config.min_size
+    max_size     = local.blue_ng_config.max_size
   }
 
   update_config {
     max_unavailable_percentage = 33 # Example update strategy
   }
 
-  labels = merge(local.common_tags, local.worker_ng_config.labels)
+  labels = merge(local.common_tags, local.blue_ng_config.labels)
 
   dynamic "taint" {
-    for_each = local.worker_ng_config.taints
+    for_each = local.blue_ng_config.taints
     content {
       key    = taint.value.key
       value  = taint.value.value
@@ -132,10 +143,10 @@ resource "aws_eks_node_group" "worker" {
   vpc_security_group_ids = [var.node_sg_id] # Attach the node security group
 
   tags = merge(local.common_tags, {
-    Name                                = "${var.cluster_name}-${local.worker_ng_config.name}"
-    "eks:nodegroup-name"                = local.worker_ng_config.name # EKS specific tag
+    Name                                = "${var.cluster_name}-${local.blue_ng_config.name}"
+    "eks:nodegroup-name"                = local.blue_ng_config.name # EKS specific tag
     "k8s.io/cluster-autoscaler/enabled" = "true"                    # Example tag for cluster autoscaler
-    # Add other relevant tags
+    "color"                             = "blue"
   })
 
   lifecycle {
@@ -144,6 +155,57 @@ resource "aws_eks_node_group" "worker" {
 
   depends_on = [aws_eks_cluster.main]
 }
+
+# Green Node Group
+resource "aws_eks_node_group" "green" {
+  cluster_name    = aws_eks_cluster.main.name
+  node_group_name = local.green_ng_config.name
+  node_role_arn   = var.node_role_arn
+  subnet_ids      = var.private_subnet_ids
+
+  ami_type       = "BOTTLEROCKET_x86_64" # As per plan
+  capacity_type  = "ON_DEMAND"           # Or SPOT
+  disk_size      = local.green_ng_config.disk_size
+  instance_types = [local.green_ng_config.instance_type]
+  release_version = null # Let EKS manage the Bottlerocket version based on K8s version
+
+  scaling_config {
+    desired_size = local.green_ng_config.desired_size
+    min_size     = local.green_ng_config.min_size
+    max_size     = local.green_ng_config.max_size
+  }
+
+  update_config {
+    max_unavailable_percentage = 33 # Example update strategy
+  }
+
+  labels = merge(local.common_tags, local.green_ng_config.labels)
+
+  dynamic "taint" {
+    for_each = local.green_ng_config.taints
+    content {
+      key    = taint.value.key
+      value  = taint.value.value
+      effect = taint.value.effect
+    }
+  }
+
+  vpc_security_group_ids = [var.node_sg_id] # Attach the node security group
+
+  tags = merge(local.common_tags, {
+    Name                                = "${var.cluster_name}-${local.green_ng_config.name}"
+    "eks:nodegroup-name"                = local.green_ng_config.name # EKS specific tag
+    "k8s.io/cluster-autoscaler/enabled" = "true"                    # Example tag for cluster autoscaler
+    "color"                             = "green"
+  })
+
+  lifecycle {
+    create_before_destroy = true
+  }
+
+  depends_on = [aws_eks_cluster.main]
+}
+
 
 # Ingress Node Group
 resource "aws_eks_node_group" "ingress" {

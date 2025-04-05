@@ -76,24 +76,43 @@ variable "tags" {
   default     = {}
 }
 
-# Variables for specific node groups (worker, ingress, infra) as per the plan
-variable "worker_node_group_config" {
-  description = "Configuration for the main worker node group"
+# Variables for specific node groups (blue/green, ingress, infra)
+variable "blue_node_group_config" {
+  description = "Configuration for the Blue node group"
   type = object({
-    name          = optional(string, "worker-nodes")
+    name          = optional(string, "blue-nodes")
     instance_type = optional(string, "t3.medium")
     desired_size  = optional(number, 2)
     min_size      = optional(number, 1)
     max_size      = optional(number, 3)
     disk_size     = optional(number, 20)
-    labels        = optional(map(string), {})
+    labels        = optional(map(string), { "color" = "blue" }) # Default blue label
     taints = optional(list(object({
       key    = string
       value  = string
       effect = string
     })), [])
   })
-  default = {} # Rely on individual defaults or allow full override
+  default = {} # Allow full override
+}
+
+variable "green_node_group_config" {
+  description = "Configuration for the Green node group"
+  type = object({
+    name          = optional(string, "green-nodes")
+    instance_type = optional(string, "t3.medium")
+    desired_size  = optional(number, 2)
+    min_size      = optional(number, 1)
+    max_size      = optional(number, 3)
+    disk_size     = optional(number, 20)
+    labels        = optional(map(string), { "color" = "green" }) # Default green label
+    taints = optional(list(object({
+      key    = string
+      value  = string
+      effect = string
+    })), [])
+  })
+  default = {} # Allow full override
 }
 
 variable "ingress_node_group_config" {

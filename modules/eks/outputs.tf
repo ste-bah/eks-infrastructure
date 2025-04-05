@@ -26,14 +26,24 @@ output "oidc_provider_arn" {
   value       = one(aws_iam_openid_connect_provider.oidc_provider[*].arn)
 }
 
-output "worker_node_group_arn" {
-  description = "ARN of the default worker node group"
-  value       = aws_eks_node_group.worker.arn
+output "blue_node_group_arn" {
+  description = "ARN of the blue node group"
+  value       = aws_eks_node_group.blue.arn
 }
 
-output "worker_node_group_name" {
-  description = "Name of the default worker node group"
-  value       = aws_eks_node_group.worker.node_group_name
+output "blue_node_group_name" {
+  description = "Name of the blue node group"
+  value       = aws_eks_node_group.blue.node_group_name
+}
+
+output "green_node_group_arn" {
+  description = "ARN of the green node group"
+  value       = aws_eks_node_group.green.arn
+}
+
+output "green_node_group_name" {
+  description = "Name of the green node group"
+  value       = aws_eks_node_group.green.node_group_name
 }
 
 output "ingress_node_group_arn" {
